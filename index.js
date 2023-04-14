@@ -37,6 +37,7 @@ async function run () {
         const bookingsCollection = client.db("BATCH_3_LAST_ASSIGNMENT").collection("Bookings");
         const usersCollection = client.db("BATCH_3_LAST_ASSIGNMENT").collection("Users");
         const reviewsCollection = client.db("BATCH_3_LAST_ASSIGNMENT").collection("Reviews");
+        const paymentsCollection = client.db("BATCH_3_LAST_ASSIGNMENT").collection("Payments");
 
 
         // Show All The Data in the  CheapestPricingPlan.js
@@ -172,22 +173,38 @@ async function run () {
 
 
         // CheckoutForm.js
-        // app.post("/create-payment-intent", async(req,res) => {
-        //     const booking = req.body;
-        //     const price = booking.price;
-        //     const amount = price * 100 ;
-        //     const paymentIntent = await stripe.paymentIntents.create({
-        //         amount : amount,
-        //         currencry : "usd",
-        //         "payment_method_types": [
-        //             "card"
-        //           ],
-        //     });
+        app.post("/create-payment-intent", async(req,res) => {
+            const singleBooking = req.body;
+            const price = singleBooking.price;
+            const amount = price * 100 ;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount : amount,
+                currency: "usd",
+                "payment_method_types": [
+                    "card"
+                  ],
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+              });
+        });
 
-        //     res.send({
-        //         clientSecret: paymentIntent.client_secret,
-        //       });
-        // })
+
+        // payments CheckoutForm.js
+        app.post("/payments", async(req,res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+            const id = payment.bookingId ;
+            const filter = {_id : new ObjectId(id)};
+            const updatedDoc = {
+                $set : {
+                    paid : true,
+                    transactionId : payment.transactionId
+                }
+            }
+            const updatedResult = await bookingsCollection.updateOne(filter,updatedDoc)
+            res.send(result);
+        });
 
 
 
